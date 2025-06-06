@@ -5,11 +5,11 @@ import { useQuery, type QueryFunctionContext } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 
-const getLavaderoToken = async (ctx: QueryFunctionContext) => {
+const getNewToken = async (ctx: QueryFunctionContext) => {
   const [_, id] = ctx.queryKey;
   void _;
   const token = useAuthStore.getState().token;
-  const { data } = await apiGestionCar.get(`/auth/workplace_login/${id}`, {
+  const { data } = await apiGestionCar.get(`/auth/tenant_login/${id}`, {
     headers: {
       Authorization: `Bearer ${token}`
     }
@@ -17,28 +17,28 @@ const getLavaderoToken = async (ctx: QueryFunctionContext) => {
   return data;
 };
 
-const LavaderoPanel = () => {
+const ServiceTenant = () => {
   const { id } = useParams();
-  const { setWorkPlaceToken } = useAuthStore();
+  const { setTokenWithTenant, } = useAuthStore();
 
   const { data, isSuccess } = useQuery({
-    queryKey: ['lavadero_workplace', id], // Clave única para lavadero
-    queryFn: getLavaderoToken,
+    queryKey: ['tenant-current', id], // Clave única para lavadero
+    queryFn: getNewToken,
     staleTime: Infinity
   });
 
   useEffect(() => {
     if (isSuccess) {
-      setWorkPlaceToken(data.body);
+      setTokenWithTenant(data.body);
     }
-  }, [isSuccess, data, setWorkPlaceToken]);
+  }, [isSuccess, data, setTokenWithTenant]);
 
   return (
     <div>
-      <h1>LavaderoPanel</h1>
+      <h1>Testing</h1>
       <AdminDashboard />
     </div>
   );
 };
 
-export default LavaderoPanel;
+export default ServiceTenant;

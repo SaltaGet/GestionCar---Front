@@ -1,8 +1,8 @@
 import apiGestionCar from "@/api/gestionCarApi";
 import useAuthStore from "@/store/authStore";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, type JSX } from "react";
-import { FaCar, FaSignOutAlt, FaTools, FaStore } from "react-icons/fa";
+import { useEffect } from "react";
+import { FaSignOutAlt, FaStore } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 // Tipos mejor definidos
@@ -11,10 +11,11 @@ type Workplace = {
   created_at: string;
   email: string;
   id: string;
-  identifier: "laundry" | "workshop" | string;
   name: string;
   phone: string;
   updated_at: string;
+  is_active: boolean;
+  user_is_active: boolean;
 };
 
 type ApiResponse = {
@@ -25,7 +26,7 @@ type ApiResponse = {
 
 const getWorkplace = async (): Promise<ApiResponse> => {
   const token = useAuthStore.getState().token;
-  const { data } = await apiGestionCar.get<ApiResponse>("/workplace/get_all", {
+  const { data } = await apiGestionCar.get<ApiResponse>("/tenant/get_all", {
     headers: {
       Authorization: `Bearer ${token}`
     }
@@ -53,54 +54,16 @@ const Dashboard = () => {
     navigate("/login");
   };
 
-  // Configuraciones tipadas
-  type WorkplaceConfig = {
-    icon: JSX.Element;
-    title: string;
-    description: string;
-    bgColor: string;
-    hoverBgColor: string;
-    borderColor: string;
-    bgHoverColor: string;
-    redirect: string
-  };
-
-  const workplaceConfigs: Record<string, WorkplaceConfig> = {
-    laundry: {
-      icon: <FaCar className="text-3xl text-blue-600" />,
-      title: "Lavadero",
-      description: "Limpieza profesional",
-      bgColor: "bg-blue-100",
-      hoverBgColor: "bg-blue-200",
-      borderColor: "hover:border-blue-300",
-      bgHoverColor: "hover:bg-blue-50",
-      redirect: "/lavadero"
-    },
-    workshop: {
-      icon: <FaTools className="text-3xl text-orange-600" />,
-      title: "Taller",
-      description: "Reparaciones expertas",
-      bgColor: "bg-orange-100",
-      hoverBgColor: "bg-orange-200",
-      borderColor: "hover:border-orange-300",
-      bgHoverColor: "hover:bg-orange-50",
-      redirect: "/taller"
-
-    },
-    default: {
-      icon: <FaStore className="text-3xl text-purple-600" />,
-      title: "Servicio",
-      description: "Servicio especializado",
-      bgColor: "bg-purple-100",
-      hoverBgColor: "bg-purple-200",
-      borderColor: "hover:border-purple-300",
-      bgHoverColor: "hover:bg-purple-50",
-      redirect: "/service"
-    }
-  };
-
-  const getWorkplaceConfig = (identifier: string): WorkplaceConfig => {
-    return workplaceConfigs[identifier] || workplaceConfigs.default;
+  // Configuración única para todos los workplaces
+  const workplaceConfig = {
+    icon: <FaStore className="text-3xl text-purple-600" />,
+    title: "Servicio",
+    description: "Acceder al servicio",
+    bgColor: "bg-purple-100",
+    hoverBgColor: "bg-purple-200",
+    borderColor: "hover:border-purple-300",
+    bgHoverColor: "hover:bg-purple-50",
+    redirect: "/service"
   };
 
   return (
@@ -118,39 +81,36 @@ const Dashboard = () => {
       {/* Manejo seguro de workplaces con verificación completa */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-2xl">
         {workplaces?.body && workplaces.body.length > 0 ? (
-          workplaces.body.map((workplace) => {
-            const config = getWorkplaceConfig(workplace.identifier);
-            return (
-              <button
-                key={workplace.id}
+          workplaces.body.map((workplace) => (
+            <button
+              key={workplace.id}
+              className={`
+                bg-white border border-gray-200 rounded-xl
+                p-8 flex flex-col items-center justify-center
+                transition-all duration-200
+                shadow-sm hover:shadow-md
+                ${workplaceConfig.borderColor} ${workplaceConfig.bgHoverColor}
+                group
+              `}
+              onClick={() => navigate(`${workplaceConfig.redirect}/${workplace.id}`)}
+            >
+              <div
                 className={`
-                  bg-white border border-gray-200 rounded-xl
-                  p-8 flex flex-col items-center justify-center
-                  transition-all duration-200
-                  shadow-sm hover:shadow-md
-                  ${config.borderColor} ${config.bgHoverColor}
-                  group
+                  ${workplaceConfig.bgColor} p-4 rounded-full
+                  mb-5 group-hover:${workplaceConfig.hoverBgColor}
+                  transition-colors duration-200
                 `}
-                onClick={() => navigate(`${config.redirect}/${workplace.id}`)}
               >
-                <div
-                  className={`
-                    ${config.bgColor} p-4 rounded-full
-                    mb-5 group-hover:${config.hoverBgColor}
-                    transition-colors duration-200
-                  `}
-                >
-                  {config.icon}
-                </div>
-                <span className="text-xl font-semibold text-gray-700">
-                  {config.title}
-                </span>
-                <p className="text-gray-400 text-sm mt-1">
-                  {config.description}
-                </p>
-              </button>
-            );
-          })
+                {workplaceConfig.icon}
+              </div>
+              <span className="text-xl font-semibold text-gray-700">
+                {workplace.name || workplaceConfig.title}
+              </span>
+              <p className="text-gray-400 text-sm mt-1">
+                {workplaceConfig.description}
+              </p>
+            </button>
+          ))
         ) : (
           <p className="text-gray-500 col-span-2 text-center">
             No hay servicios disponibles

@@ -1,18 +1,24 @@
 // components/ClientSearch.tsx
 import { useState } from "react";
 import { FaPlus } from "react-icons/fa";
-import { useClient } from "@/hooks/useClient";
+import { useDebounce } from "use-debounce";
+import { useGetClientsByName } from "@/hooks/clients/usetGetByNameClient";
 
 interface ClientSearchProps {
   value: string;
   onChange: (id: string, label: string) => void;
-  onAddClient?: () => void; // ahora es opcional
+  onAddClient?: () => void;
 }
 
 export const ClientSearch = ({ value, onChange, onAddClient }: ClientSearchProps) => {
   const [searchTerm, setSearchTerm] = useState(value);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const { clientByName } = useClient(searchTerm);
+  
+  // Añadir debounce al término de búsqueda (500ms por defecto)
+  const [debouncedSearchTerm] = useDebounce(searchTerm, 500);
+  
+  // Usar el término debounced para la búsqueda
+  const { clients: clientByName, isLoading } = useGetClientsByName(debouncedSearchTerm);
 
   const filteredClients = clientByName.filter((client) =>
     `${client.first_name} ${client.last_name}`.toLowerCase().includes(searchTerm.toLowerCase())
@@ -59,10 +65,16 @@ export const ClientSearch = ({ value, onChange, onAddClient }: ClientSearchProps
                   </div>
                 ))
               ) : (
+                !isLoading ? (
+                  <div className="px-4 py-2 text-gray-500">
+                  Buscando ...
+                </div>
+                  
+                ):(
                 <div className="px-4 py-2 text-gray-500">
                   No se encontraron clientes
                 </div>
-              )}
+              ))}
             </div>
           )}
         </div>

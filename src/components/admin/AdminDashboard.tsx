@@ -20,6 +20,10 @@ import {
   ArrowDownIcon,
 } from "@heroicons/react/24/outline";
 import { FormIncome } from "./forms/FormIncome";
+import ClientsCreate from "@/pages/tenant/clients/ClientsCreate";
+import ServiceCreate from "@/pages/tenant/service/ServiceCreate";
+import { TableClients } from "@/pages/tenant/clients/TableClients";
+import { TableServices } from "@/pages/tenant/service/TableServices";
 
 type Action = {
   id: string;
@@ -45,7 +49,6 @@ type Section = {
 
 // Componentes para cada acción
 const CrearIngreso = () => <h1>Formulario para crear nuevo ingreso</h1>;
-const ListarIngresos = () => <h1>Tabla con todos los ingresos</h1>;
 const ListarVehiculos = () => <h1>Tabla con todos los vehículos</h1>;
 const ListarClientes = () => <h1>Tabla con todos los clientes</h1>;
 
@@ -86,26 +89,26 @@ const AdminDashboard = () => {
       ],
     },
     {
-      id: "section-servicios",
+      id: "section-services",
       name: "Servicios",
       models: [
         {
-          id: "model-servicios",
+          id: "model-services",
           name: "Servicios",
           icon: SparklesIcon,
           color: "text-esmerald-500",
           actions: [
             {
-              id: "action-crear-servicio",
+              id: "action-create-services",
               name: "Crear",
               icon: PlusIcon,
-              component: CrearIngreso,
+              component: ServiceCreate,
             },
             {
-              id: "action-listar-servicio",
+              id: "action-list-services",
               name: "Listar",
               icon: ListBulletIcon,
-              component: ListarIngresos,
+              component: TableServices,
             },
           ],
         },
@@ -156,11 +159,18 @@ const AdminDashboard = () => {
             color: "text-blue-500",
             actions: [
               {
-                id: "action-listar-clientes",
+                id: "action-create-clients",
+                name: "Crear",
+                icon: PlusIcon,
+                component:ClientsCreate,
+              },
+              {
+                id: "action-list-clients",
                 name: "Listar",
                 icon: ListBulletIcon,
-                component: ListarClientes,
+                component: TableClients,
               },
+              
             ],
           },
           {

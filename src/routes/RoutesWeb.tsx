@@ -2,9 +2,8 @@ import Footer from "@/components/HeaderFooter/Footer";
 import Header from "@/components/HeaderFooter/Header";
 import Dashboard from "@/pages/Dashboard";
 import Home from "@/pages/Home";
-import LavaderoPanel from "@/pages/lavadero/LavaderoPanel";
 import Login from "@/pages/Login";
-import TallerPanel from "@/pages/taller/TallerPanel";
+import ServiceTenant from "@/pages/tenant/ServiceTenant";
 import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 
 const Layout = () => (
@@ -34,13 +33,8 @@ const routers = createBrowserRouter([
         errorElement: <h1>FAIL LOGIN</h1>,
       },
       {
-        path: "/taller/:id",
-        element: <TallerPanel />,
-        errorElement: <h1>FAIL LOGIN</h1>,
-      },
-      {
-        path: "/lavadero/:id",
-        element: <LavaderoPanel />,
+        path: "/service/:id",
+        element: <ServiceTenant />,
         errorElement: <h1>FAIL LOGIN</h1>,
       },
     ],

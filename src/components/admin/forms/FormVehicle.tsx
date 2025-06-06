@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { FaSave } from "react-icons/fa";
 import { ClientSearch } from "../search/ClientSearch";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type VehicleData = {
   brand: string;
@@ -15,6 +15,14 @@ type VehicleData = {
   model: string | null;
   year: string;
 };
+
+interface FormVehicleProps {
+  onCancel: () => void;
+  client?: {
+    id: string;
+    label: string;
+  };
+}
 
 const postVehicle = async (formData: VehicleData) => {
   const token = useAuthStore.getState().token;
@@ -27,8 +35,8 @@ const postVehicle = async (formData: VehicleData) => {
   return data;
 };
 
-export const FormVehicle = ({ onCancel }: { onCancel: () => void }) => {
-    const queryClient = useQueryClient();
+export const FormVehicle = ({ onCancel, client }: FormVehicleProps) => {
+  const queryClient = useQueryClient();
   const {
     register,
     handleSubmit,
@@ -36,12 +44,20 @@ export const FormVehicle = ({ onCancel }: { onCancel: () => void }) => {
     formState: { errors },
   } = useForm<VehicleData>();
   const [searchTermTemp, setSearchTermTemp] = useState("");
+
+  // Si recibimos un cliente como prop, lo establecemos en el formulario
+  useEffect(() => {
+    if (client) {
+      setValue("client_id", client.id);
+      setSearchTermTemp(client.label);
+    }
+  }, [client, setValue]);
+
   const { mutate, isPending } = useMutation({
     mutationFn: postVehicle,
     onSuccess: (data) => {
       console.log(data);
-        queryClient.invalidateQueries({ queryKey: ["vehicleByClient"] });
-
+      queryClient.invalidateQueries({ queryKey: ["vehicleByClient"] });
       onCancel();
     },
     onError: () => {
@@ -158,7 +174,30 @@ export const FormVehicle = ({ onCancel }: { onCancel: () => void }) => {
             )}
           </div>
 
-          {!searchTermTemp ? (
+          {/* Campo de cliente - comportamiento condicional */}
+          {client ? (
+            <div className="flex items-center justify-between bg-gray-100 p-2 rounded-md">
+              <span className="text-base font-semibold text-gray-800">
+                {client.label}
+              </span>
+            </div>
+          ) : searchTermTemp ? (
+            <div className="flex items-center justify-between bg-gray-100 p-2 rounded-md">
+              <span className="text-base font-semibold text-gray-800">
+                {searchTermTemp}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchTermTemp("");
+                  setValue("client_id", "");
+                }}
+                className="text-gray-600 hover:text-red-600 ml-2"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
             <ClientSearch
               value={""}
               onChange={(id, label) => {
@@ -166,24 +205,6 @@ export const FormVehicle = ({ onCancel }: { onCancel: () => void }) => {
                 setValue("client_id", id);
               }}
             />
-          ) : (
-            <div className="flex items-center justify-between bg-gray-100 p-2 rounded-md">
-              <span className="text-base font-semibold text-gray-800">
-                {searchTermTemp}
-              </span>
-              
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchTermTemp("");
-                    setValue("client_id", "");
-                  }}
-                  className="text-gray-600 hover:text-red-600 ml-2"
-                >
-                  ✕
-                </button>
-              
-            </div>
           )}
         </div>
 
