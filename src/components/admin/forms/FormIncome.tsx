@@ -11,7 +11,7 @@ import { ServiceSelector } from "./formIncome/ServiceSelector";
 import { useServiceSelection } from "@/hooks/utils/useServiceSelection";
 import { useGetAllService } from "@/hooks/service/useGetAllService";
 import { MovementSearch } from "../search/MovementSearch";
-import { usePostIncome } from "@/pages/tenant/income/usePostIncome";
+//import { usePostIncome } from "@/pages/tenant/income/usePostIncome";
 
 type FormData = {
   amount: number;
@@ -32,7 +32,7 @@ export const FormIncome = () => {
     "client" | "movement" | "services" | "vehicle" | null
   >(null);
 
-  const {postIncome, isPostingIncome} = usePostIncome();
+  //const {postIncome, isPostingIncome} = usePostIncome();
 
   // Usar el hook personalizado para manejar la selección de servicios
   const { selectedServices, handleServiceToggle, removeService } =
@@ -45,7 +45,7 @@ export const FormIncome = () => {
 
   const onSubmit = (data: FormData) => {
     console.log(data);
-    postIncome(data);
+    //*postIncome(data);
 
   }
 
