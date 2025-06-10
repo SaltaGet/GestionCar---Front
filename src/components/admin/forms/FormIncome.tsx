@@ -7,9 +7,11 @@ import { ClientSearch } from "../search/ClientSearch";
 import { useVehicleSearchById } from "@/hooks/vehicle/useVehicleSearchById";
 import { VehicleSearch } from "../search/VehicleSearch";
 import Modal from "./formIncome/Modal";
-import { ServiceSelector} from "./formIncome/ServiceSelector";
+import { ServiceSelector } from "./formIncome/ServiceSelector";
 import { useServiceSelection } from "@/hooks/utils/useServiceSelection";
 import { useGetAllService } from "@/hooks/service/useGetAllService";
+import { MovementSearch } from "../search/MovementSearch";
+import { usePostIncome } from "@/pages/tenant/income/usePostIncome";
 
 type FormData = {
   amount: number;
@@ -29,23 +31,25 @@ export const FormIncome = () => {
   const [openModal, setOpenModal] = useState<
     "client" | "movement" | "services" | "vehicle" | null
   >(null);
-  
+
+  const {postIncome, isPostingIncome} = usePostIncome();
+
   // Usar el hook personalizado para manejar la selección de servicios
-  const {
-    selectedServices,
-    handleServiceToggle,
-    removeService,
-  } = useServiceSelection(watch("services_id") || []);
+  const { selectedServices, handleServiceToggle, removeService } =
+    useServiceSelection(watch("services_id") || []);
 
   const { vehicles } = useVehicleSearchById(watch("client_id"));
 
   const [searchTermTemp, setSearchTermTemp] = useState("");
   const [searchTermVehicleTemp, setSearchTermVehicleTemp] = useState("");
 
-  const onSubmit = (data: FormData) => console.log(data);
+  const onSubmit = (data: FormData) => {
+    console.log(data);
+    postIncome(data);
+
+  }
 
   const client_id = watch("client_id");
-
 
   useEffect(() => {
     setValue("vehicle_id", "");
@@ -63,12 +67,22 @@ export const FormIncome = () => {
           <label className="block text-sm font-semibold text-blue-800 uppercase tracking-wider mb-1">
             Monto
           </label>
-          <input
-            type="number"
-            {...register("amount")}
-            className="mt-1 block w-full border border-blue-200 rounded-md p-3 text-xl font-bold text-blue-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="0.00"
-          />
+          <div className="relative mt-1">
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-xl font-bold text-blue-900">
+              $
+            </span>
+            <input
+              type="number"
+              {...register("amount")}
+              className="block w-full border border-blue-200 rounded-md p-3 pl-8 text-xl font-bold text-blue-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="0.00"
+              step="any"
+              onWheel={(e: React.WheelEvent<HTMLInputElement>) =>
+                e.currentTarget.blur()
+              }
+              style={{ WebkitAppearance: "none", MozAppearance: "textfield" }}
+            />
+          </div>
         </div>
 
         {/* Sección de Información Básica */}
@@ -105,27 +119,12 @@ export const FormIncome = () => {
           )}
 
           {/* Tipo de Movimiento */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tipo de Movimiento
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                readOnly
-                {...register("movement_type_id")}
-                placeholder="Seleccionar tipo"
-                className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              />
-              <button
-                type="button"
-                onClick={() => setOpenModal("movement")}
-                className="mt-1 bg-indigo-600 text-white p-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-              >
-                <FaPlus className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
+          <MovementSearch
+            value={""}
+            onChange={(id) => {
+              setValue("movement_type_id", id);
+            }}
+          />
         </div>
 
         {/* Sección de Servicios y Vehículo */}
@@ -255,7 +254,6 @@ export const FormIncome = () => {
         </div>
       </form>
 
-
       {/* Modal de Cliente */}
       <Modal
         isOpen={openModal === "client"}
@@ -291,14 +289,14 @@ export const FormIncome = () => {
           setOpenModal(null);
         }}
       >
-        <FormVehicle 
-  onCancel={() => setOpenModal(null)}
-  client={
-    watch("client_id") 
-      ? { id: watch("client_id"), label: "Cliente Seleccionado" } 
-      : undefined
-  }
-/>
+        <FormVehicle
+          onCancel={() => setOpenModal(null)}
+          client={
+            watch("client_id")
+              ? { id: watch("client_id"), label: "Cliente Seleccionado" }
+              : undefined
+          }
+        />
       </Modal>
     </div>
   );

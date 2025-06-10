@@ -1,36 +1,40 @@
 import { useForm } from 'react-hook-form';
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Save, X, Edit2, Trash2, MoreVertical, PlusCircle } from 'lucide-react';
-import { useGetAllService } from '@/hooks/service/useGetAllService';
-import useDeleteAndEditServices from '@/hooks/service/useDeleteAndEditServices';
+import { Save, X, Edit2, Trash2, MoreVertical, Filter } from 'lucide-react';
+import useDeleteAndEditMovements from '@/hooks/movements/useDeleteAndEditMovements';
+import { useGetAllMovements } from '@/hooks/movements/useGetAllMovements';
 
-type Service = {
+type Movement = {
   id: string;
   name: string;
+  is_income: boolean;
   created_at: string;
   updated_at: string;
-  incomes: null;
 };
 
-type EditServiceForm = {
+type EditMovementForm = {
   name: string;
+  is_income: boolean;
 };
 
-export const TableServices = () => {
+export const TableMovements = () => {
   // Formulario para edición
   const { 
     register: registerEdit, 
     handleSubmit: handleEditSubmit,
     reset: resetEditForm,
-  } = useForm<EditServiceForm>();
+  } = useForm<EditMovementForm>();
 
-  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+  // Estados
+  const [editingMovementId, setEditingMovementId] = useState<string | null>(null);
   const [activePopupId, setActivePopupId] = useState<string | null>(null);
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
+  const [filterIncome, setFilterIncome] = useState<boolean | undefined>(true);
   const popupRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const { editService, deleteService, isEditing, isDeleting } = useDeleteAndEditServices();
 
-  const { services, isLoading } = useGetAllService();
+  // Hooks
+  const { movements, isLoading } = useGetAllMovements(filterIncome);
+  const { editMovement, deleteMovement, isEditing, isDeleting } = useDeleteAndEditMovements();
 
   // Cerrar popup al hacer clic fuera
   const handleClickOutside = useCallback((event: MouseEvent) => {
@@ -47,65 +51,83 @@ export const TableServices = () => {
 
   // Bloquear scroll cuando hay popup abierto
   useEffect(() => {
-    if (activePopupId) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto';
-    }
-
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
+    document.body.style.overflow = activePopupId ? 'hidden' : 'auto';
+    return () => { document.body.style.overflow = 'auto'; };
   }, [activePopupId]);
 
-  const handleEdit = useCallback((service: Service) => {
-    setEditingServiceId(service.id);
+  // Handlers
+  const handleEdit = (movement: Movement) => {
+    setEditingMovementId(movement.id);
     setActivePopupId(null);
-    resetEditForm({
-      name: service.name
-    });
-  }, [resetEditForm]);
+    resetEditForm({ name: movement.name, is_income: movement.is_income });
+  };
 
-  const handleCancelEdit = useCallback(() => {
-    setEditingServiceId(null);
-  }, []);
+  const handleCancelEdit = () => setEditingMovementId(null);
 
-  const onSubmitEdit = useCallback((data: EditServiceForm) => {
-    if (!editingServiceId) return;
-    editService({ id: editingServiceId, ...data });
-    setEditingServiceId(null);
-  }, [editingServiceId, editService]);
+  const onSubmitEdit = (data: EditMovementForm) => {
+    if (!editingMovementId) return;
+    editMovement({ id: editingMovementId, ...data });
+    setEditingMovementId(null);
+  };
 
-  const handleDelete = useCallback((service: Service) => {
+  const handleDelete = (movement: Movement) => {
     setActivePopupId(null);
-    if (confirm(`¿Estás seguro de eliminar el servicio "${service.name}"?`)) {
-      deleteService(service.id);
+    if (confirm(`¿Eliminar el movimiento "${movement.name}"?`)) {
+      deleteMovement(movement.id);
     }
-  }, [deleteService]);
+  };
 
-  const setPopupRef = useCallback((id: string) => (el: HTMLDivElement | null) => {
+  const setPopupRef = (id: string) => (el: HTMLDivElement | null) => {
     popupRefs.current[id] = el;
-  }, []);
+  };
 
-  const togglePopup = useCallback((serviceId: string, event: React.MouseEvent<HTMLButtonElement>) => {
+  const togglePopup = (movementId: string, event: React.MouseEvent<HTMLButtonElement>) => {
     const buttonRect = event.currentTarget.getBoundingClientRect();
     setPopupPosition({
       top: buttonRect.bottom + window.scrollY,
       left: buttonRect.left + window.scrollX
     });
-    setActivePopupId(prev => prev === serviceId ? null : serviceId);
-  }, []);
+    setActivePopupId(prev => prev === movementId ? null : movementId);
+  };
 
   return (
     <div className="space-y-4">
+      {/* Filtros */}
+      <div className="flex space-x-2">
+        <button
+          onClick={() => setFilterIncome(true)}
+          className={`px-3 py-1 text-sm rounded ${
+            filterIncome === true ? 'bg-green-500 text-white' : 'bg-gray-200 hover:bg-gray-300'
+          }`}
+        >
+          <Filter className="h-4 w-4 inline mr-1" />
+          Ingresos
+        </button>
+        <button
+          onClick={() => setFilterIncome(false)}
+          className={`px-3 py-1 text-sm rounded ${
+            filterIncome === false ? 'bg-red-500 text-white' : 'bg-gray-200 hover:bg-gray-300'
+          }`}
+        >
+          <Filter className="h-4 w-4 inline mr-1" />
+          Gastos
+        </button>
+      </div>
+
       {/* Tabla */}
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" />
         </div>
-      ) : !services.length ? (
+      ) : movements.length === 0 ? (
         <div className="bg-blue-50 border-l-4 border-blue-500 p-4">
-          <p className="text-blue-700">No se encontraron servicios</p>
+          <p className="text-blue-700">
+            {filterIncome === undefined 
+              ? "No hay movimientos registrados" 
+              : filterIncome 
+                ? "No hay ingresos registrados" 
+                : "No hay gastos registrados"}
+          </p>
         </div>
       ) : (
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
@@ -114,46 +136,60 @@ export const TableServices = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Creado</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actualizado</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {services.map((service) => (
+                {movements.map((movement) => (
                   <tr 
-                    key={service.id} 
-                    className={`transition-colors ${editingServiceId === service.id ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                    key={movement.id} 
+                    className={`transition-colors ${editingMovementId === movement.id ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
                   >
                     {/* Nombre */}
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {editingServiceId === service.id ? (
+                      {editingMovementId === movement.id ? (
                         <input
-                          {...registerEdit('name', { required: 'Nombre es requerido' })}
+                          {...registerEdit('name', { required: true })}
                           className="w-full px-2 py-1 border rounded text-sm"
                         />
                       ) : (
-                        <span className="text-sm font-medium text-gray-900">{service.name}</span>
+                        <span className="text-sm font-medium text-gray-900">{movement.name}</span>
                       )}
                     </td>
 
-                    {/* Fecha de creación */}
+                    {/* Tipo */}
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-500">
-                        {new Date(service.created_at).toLocaleDateString()}
-                      </span>
+                      {editingMovementId === movement.id ? (
+                        <select
+  {...registerEdit('is_income', { 
+    setValueAs: (value) => value === 'true' // Convierte el string a booleano
+  })}
+  className="w-full px-2 py-1 border rounded text-sm"
+>
+  <option value="true">Ingreso</option>
+  <option value="false">Gasto</option>
+</select>
+                      ) : (
+                        <span className={`text-sm font-medium ${movement.is_income ? 'text-green-600' : 'text-red-600'}`}>
+                          {movement.is_income ? 'Ingreso' : 'Gasto'}
+                        </span>
+                      )}
                     </td>
 
-                    {/* Fecha de actualización */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-500">
-                        {new Date(service.updated_at).toLocaleDateString()}
-                      </span>
+                    {/* Fechas */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(movement.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(movement.updated_at).toLocaleDateString()}
                     </td>
 
                     {/* Acciones */}
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium relative">
-                      {editingServiceId === service.id ? (
+                      {editingMovementId === movement.id ? (
                         <div className="flex justify-end space-x-3">
                           <button 
                             onClick={handleEditSubmit(onSubmitEdit)} 
@@ -174,17 +210,15 @@ export const TableServices = () => {
                       ) : (
                         <div className="flex justify-end">
                           <button 
-                            onClick={(e) => togglePopup(service.id, e)}
+                            onClick={(e) => togglePopup(movement.id, e)}
                             className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
-                            aria-label="Menú de acciones"
                           >
                             <MoreVertical className="h-5 w-5" />
                           </button>
                           
-                          {/* Popup de acciones */}
-                          {activePopupId === service.id && (
+                          {activePopupId === movement.id && (
                             <div 
-                              ref={setPopupRef(service.id)}
+                              ref={setPopupRef(movement.id)}
                               className="fixed z-50 mt-2 w-56 bg-white rounded-md shadow-lg border border-gray-200"
                               style={{
                                 top: `${popupPosition.top}px`,
@@ -193,28 +227,19 @@ export const TableServices = () => {
                             >
                               <div className="py-1">
                                 <button
-                                  onClick={() => handleEdit(service)}
+                                  onClick={() => handleEdit(movement)}
                                   className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                                 >
                                   <Edit2 className="h-4 w-4 mr-2" />
-                                  Editar servicio
+                                  Editar
                                 </button>
-                                
                                 <button
-                                  onClick={() => console.log('Ver ingresos de:', service.id)}
-                                  className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                                >
-                                  <PlusCircle className="h-4 w-4 mr-2" />
-                                  Ver ingresos
-                                </button>
-                                
-                                <button
-                                  onClick={() => handleDelete(service)}
+                                  onClick={() => handleDelete(movement)}
                                   disabled={isDeleting}
                                   className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
                                 >
                                   <Trash2 className="h-4 w-4 mr-2" />
-                                  {isDeleting ? 'Eliminando...' : 'Eliminar servicio'}
+                                  {isDeleting ? 'Eliminando...' : 'Eliminar'}
                                 </button>
                               </div>
                             </div>

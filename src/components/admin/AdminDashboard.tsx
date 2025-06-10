@@ -24,6 +24,12 @@ import ClientsCreate from "@/pages/tenant/clients/ClientsCreate";
 import ServiceCreate from "@/pages/tenant/service/ServiceCreate";
 import { TableClients } from "@/pages/tenant/clients/TableClients";
 import { TableServices } from "@/pages/tenant/service/TableServices";
+import MovementsCreate from "@/pages/tenant/movenment/MovementsCreate";
+import { TableMovements } from "@/pages/tenant/movenment/TableMovements";
+import { TableVehicles } from "@/pages/tenant/vehicle/TableVehicles";
+import VehiclesCreate from "@/pages/tenant/vehicle/VehiclesCreate";
+import ProductsCreate from "@/pages/tenant/product/ProductsCreate";
+import { TableProducts } from "@/pages/tenant/product/tableProducts/TableProducts";
 
 type Action = {
   id: string;
@@ -119,16 +125,22 @@ const AdminDashboard = () => {
       name: "Inventario",
       models: [
         {
-          id: "model-productos",
+          id: "model-products",
           name: "Productos",
           icon: CubeIcon,
           color: "text-blue-500",
           actions: [
             {
-              id: "action-listar-productos",
+              id: "action-product-create",
+              name: "Crear",
+              icon: PlusIcon,
+              component: ProductsCreate,
+            },
+            {
+              id: "action-list-products",
               name: "Listar",
               icon: ListBulletIcon,
-              component: ListarClientes,
+              component: TableProducts,
             },
           ],
         },
@@ -180,10 +192,16 @@ const AdminDashboard = () => {
             color: "text-orange-500",
             actions: [
               {
-                id: "action-listar-vehiculos",
+                id: "action-create-vehicles",
+                name: "Crear",
+                icon: PlusIcon,
+                component: VehiclesCreate,
+              },
+              {
+                id: "action-list-vehicles",
                 name: "Listar",
                 icon: ListBulletIcon,
-                component: ListarVehiculos,
+                component: TableVehicles,
               },
             ],
           },
@@ -218,6 +236,32 @@ const AdminDashboard = () => {
                 name: "Listar",
                 icon: ListBulletIcon,
                 component: ListarVehiculos,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "section-finanze",
+        name: "Finanzas",
+        models: [
+          {
+            id: "model-movement",
+            name: "Movimientos",
+            icon: UserGroupIcon,
+            color: "text-emerald-500",
+            actions: [
+              {
+                id: "action-create-movement",
+                name: "Crear",
+                icon: ListBulletIcon,
+                component: MovementsCreate,
+              },
+              {
+                id: "action-list-movements",
+                name: "Listar",
+                icon: ListBulletIcon,
+                component: TableMovements,
               },
             ],
           },

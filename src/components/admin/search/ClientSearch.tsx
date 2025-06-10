@@ -1,5 +1,5 @@
 // components/ClientSearch.tsx
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FaPlus } from "react-icons/fa";
 import { useDebounce } from "use-debounce";
 import { useGetClientsByName } from "@/hooks/clients/usetGetByNameClient";
@@ -14,22 +14,23 @@ export const ClientSearch = ({ value, onChange, onAddClient }: ClientSearchProps
   const [searchTerm, setSearchTerm] = useState(value);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
-  // Añadir debounce al término de búsqueda (500ms por defecto)
   const [debouncedSearchTerm] = useDebounce(searchTerm, 500);
-  
-  // Usar el término debounced para la búsqueda
   const { clients: clientByName, isLoading } = useGetClientsByName(debouncedSearchTerm);
 
   const filteredClients = clientByName.filter((client) =>
     `${client.first_name} ${client.last_name}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  useEffect(() => {
+    setSearchTerm("");
+  }, [value]);
+
   return (
-    <div className="relative">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Cliente
+    <div className="relative w-full">
+      <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+        Buscar Cliente
       </label>
-      <div className="flex gap-2">
+      <div className="flex gap-1.5">
         <div className="relative flex-1">
           <input
             type="text"
@@ -40,17 +41,17 @@ export const ClientSearch = ({ value, onChange, onAddClient }: ClientSearchProps
             }}
             onFocus={() => setIsDropdownOpen(true)}
             onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
-            placeholder="Buscar cliente por nombre..."
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            placeholder="Nombre del cliente..."
+            className="w-full text-sm px-3 py-1.5 border border-gray-200 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
           />
 
           {isDropdownOpen && searchTerm && (
-            <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 max-h-60 overflow-auto">
+            <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 max-h-60 overflow-auto border border-gray-200 divide-y divide-gray-100">
               {filteredClients.length > 0 ? (
                 filteredClients.map((client) => (
                   <div
                     key={client.id}
-                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                    className="px-3 py-2 hover:bg-blue-50 cursor-pointer transition-colors"
                     onMouseDown={() => {
                       const label = `${client.first_name} ${client.last_name}`;
                       onChange(client.id, label);
@@ -58,23 +59,21 @@ export const ClientSearch = ({ value, onChange, onAddClient }: ClientSearchProps
                       setIsDropdownOpen(false);
                     }}
                   >
-                    <p className="font-medium">
+                    <p className="text-sm font-medium text-gray-800">
                       {client.first_name} {client.last_name}
                     </p>
-                    <p className="text-xs text-gray-500">DNI: {client.dni}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">DNI: {client.dni}</p>
                   </div>
                 ))
+              ) : !isLoading ? (
+                <div className="px-3 py-2 text-xs text-gray-500">
+                  No se encontraron coincidencias
+                </div>
               ) : (
-                !isLoading ? (
-                  <div className="px-4 py-2 text-gray-500">
-                  Buscando ...
+                <div className="px-3 py-2 text-xs text-gray-500">
+                  Buscando clientes...
                 </div>
-                  
-                ):(
-                <div className="px-4 py-2 text-gray-500">
-                  No se encontraron clientes
-                </div>
-              ))}
+              )}
             </div>
           )}
         </div>
@@ -83,7 +82,7 @@ export const ClientSearch = ({ value, onChange, onAddClient }: ClientSearchProps
           <button
             type="button"
             onClick={onAddClient}
-            className="mt-1 bg-indigo-600 text-white p-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            className="mt-0.5 bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-offset-1 transition-colors shadow-sm"
           >
             <FaPlus className="h-3 w-3" />
           </button>

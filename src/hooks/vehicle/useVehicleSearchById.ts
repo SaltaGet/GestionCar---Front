@@ -38,7 +38,7 @@ const getVehicleByClient = async (ctx: QueryFunctionContext): Promise<ApiRespons
 
 // hook personalizado que usa react-query para obtener vehículos
 export function useVehicleSearchById(id: string) {
-  const { data } = useQuery<ApiResponse<Vehicle[]>>({
+  const { data, isLoading } = useQuery<ApiResponse<Vehicle[]>>({
     queryKey: ['vehicleByClient', id],
     queryFn: getVehicleByClient,
     staleTime: Infinity,
@@ -46,6 +46,7 @@ export function useVehicleSearchById(id: string) {
   })
 
   return {
-    vehicles: data?.body || []
+    vehicles: data?.body || [],
+    isLoading
   }
 }

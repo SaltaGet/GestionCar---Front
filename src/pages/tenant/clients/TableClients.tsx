@@ -2,9 +2,9 @@ import { useForm } from 'react-hook-form';
 import { useDebounce } from 'use-debounce';
 import { useGetAllClients } from '@/hooks/clients/useGetAllClients';
 import { useGetClientsByName } from '@/hooks/clients/usetGetByNameClient';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import useDeleteAndEditClients from '@/hooks/clients/useDeleteAndEditClients';
-import { Save, X, Edit2, Trash2 } from 'lucide-react';
+import { Save, X, Edit2, Trash2, MoreVertical, User, Mail, CreditCard } from 'lucide-react';
 
 type Client = {
   id: string;
@@ -37,6 +37,9 @@ export const TableClients = () => {
 
   const [isTyping, setIsTyping] = useState(false);
   const [editingClientId, setEditingClientId] = useState<string | null>(null);
+  const [activePopupId, setActivePopupId] = useState<string | null>(null);
+  const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
+  const popupRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const { editClient, deleteClient, isEditing, isDeleting } = useDeleteAndEditClients();
 
   const searchValue = watch('search');
@@ -45,16 +48,39 @@ export const TableClients = () => {
   const { clients, isLoading } = useGetAllClients();
   const { clients: clientsByName, isLoading: isLoadingByName } = useGetClientsByName(debouncedSearchTerm);
 
-  useEffect(() => {
-    if (searchValue) {
-      setIsTyping(true);
-    } else {
-      setIsTyping(false);
+  // Cerrar popup al hacer clic fuera
+  const handleClickOutside = useCallback((event: MouseEvent) => {
+    if (activePopupId && popupRefs.current[activePopupId] && 
+        !popupRefs.current[activePopupId]?.contains(event.target as Node)) {
+      setActivePopupId(null);
     }
+  }, [activePopupId]);
+
+  useEffect(() => {
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [handleClickOutside]);
+
+  useEffect(() => {
+    setIsTyping(!!searchValue);
   }, [searchValue]);
 
-  const handleEdit = (client: Client) => {
+  // Agrega este efecto en tu componente
+useEffect(() => {
+  if (activePopupId) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = 'auto';
+  }
+
+  return () => {
+    document.body.style.overflow = 'auto';
+  };
+}, [activePopupId]);
+
+  const handleEdit = useCallback((client: Client) => {
     setEditingClientId(client.id);
+    setActivePopupId(null);
     resetEditForm({
       first_name: client.first_name,
       last_name: client.last_name,
@@ -62,27 +88,47 @@ export const TableClients = () => {
       email: client.email,
       cuil: client.cuil
     });
-  };
+  }, [resetEditForm]);
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     setEditingClientId(null);
-  };
+  }, []);
 
-  const onSubmitEdit = (data: EditClientForm) => {
+  const onSubmitEdit = useCallback((data: EditClientForm) => {
     if (!editingClientId) return;
-    
-    editClient({
-      id: editingClientId,
-      ...data
-    });
+    editClient({ id: editingClientId, ...data });
     setEditingClientId(null);
-  };
+  }, [editingClientId, editClient]);
 
-  const handleDelete = (client: Client) => {
+  const handleDelete = useCallback((client: Client) => {
+    setActivePopupId(null);
     if (confirm(`¿Estás seguro de eliminar a ${client.first_name} ${client.last_name}?`)) {
       deleteClient(client.id);
     }
-  };
+  }, [deleteClient]);
+
+  const setPopupRef = useCallback((id: string) => (el: HTMLDivElement | null) => {
+    popupRefs.current[id] = el;
+  }, []);
+
+  const togglePopup = useCallback((clientId: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    const buttonRect = event.currentTarget.getBoundingClientRect();
+    setPopupPosition({
+      top: buttonRect.bottom + window.scrollY,
+      left: buttonRect.left + window.scrollX
+    });
+    setActivePopupId(prev => prev === clientId ? null : clientId);
+  }, []);
+
+  const handleViewProfile = useCallback((client: Client) => {
+    setActivePopupId(null);
+    console.log('Ver perfil de:', client.id);
+  }, []);
+
+  const handleSendEmail = useCallback((client: Client) => {
+    setActivePopupId(null);
+    console.log('Enviar email a:', client.email);
+  }, []);
 
   const displayClients = debouncedSearchTerm.trim().length >= 3 ? clientsByName : clients;
   const showLoading = !isTyping && (debouncedSearchTerm.trim().length >= 3 ? isLoadingByName : isLoading);
@@ -94,9 +140,7 @@ export const TableClients = () => {
         <input
           type="text"
           placeholder="Buscar clientes por nombre..."
-          {...register('search', {
-            validate: value => value.length === 0 || value.length >= 3 || 'ingresa al menos 3 caracteres',
-          })}
+          {...register('search')}
           className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
@@ -108,7 +152,7 @@ export const TableClients = () => {
         </div>
       ) : !displayClients.length ? (
         <div className="bg-blue-50 border-l-4 border-blue-500 p-4">
-          {!isLoadingByName ?<p className="text-blue-700">No se encontraron clientes</p>:
+          {!isLoadingByName ? <p className="text-blue-700">No se encontraron clientes</p> :
           <p className="text-blue-700">Buscando...</p>}
         </div>
       ) : (
@@ -130,7 +174,6 @@ export const TableClients = () => {
                     key={client.id} 
                     className={`transition-colors ${editingClientId === client.id ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
                   >
-                    {/* DNI */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       {editingClientId === client.id ? (
                         <input
@@ -142,7 +185,6 @@ export const TableClients = () => {
                       )}
                     </td>
 
-                    {/* Apellido */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       {editingClientId === client.id ? (
                         <input
@@ -154,7 +196,6 @@ export const TableClients = () => {
                       )}
                     </td>
 
-                    {/* Nombre */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       {editingClientId === client.id ? (
                         <input
@@ -166,7 +207,6 @@ export const TableClients = () => {
                       )}
                     </td>
 
-                    {/* Email */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       {editingClientId === client.id ? (
                         <input
@@ -185,8 +225,7 @@ export const TableClients = () => {
                       )}
                     </td>
 
-                    {/* Acciones */}
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium relative">
                       {editingClientId === client.id ? (
                         <div className="flex justify-end space-x-3">
                           <button 
@@ -206,26 +245,69 @@ export const TableClients = () => {
                           </button>
                         </div>
                       ) : (
-                        <div className="flex justify-end space-x-3">
+                        <div className="flex justify-end">
                           <button 
-                            onClick={() => handleEdit(client)} 
-                            className="text-indigo-600 hover:text-indigo-900" 
-                            title="Editar"
+                            onClick={(e) => togglePopup(client.id, e)}
+                            className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
+                            aria-label="Menú de acciones"
                           >
-                            <Edit2 className="h-5 w-5" />
+                            <MoreVertical className="h-5 w-5" />
                           </button>
-                          <button 
-                            onClick={() => handleDelete(client)} 
-                            disabled={isDeleting}
-                            className="text-red-600 hover:text-red-900" 
-                            title="Eliminar"
-                          >
-                            {isDeleting ? (
-                              <span>Eliminando...</span>
-                            ) : (
-                              <Trash2 className="h-5 w-5" />
-                            )}
-                          </button>
+                          
+                          {/* Popup de acciones con posicionamiento fijo */}
+                          {activePopupId === client.id && (
+                            <div 
+                              ref={setPopupRef(client.id)}
+                              className="fixed z-50 mt-2 w-56 bg-white rounded-md shadow-lg border border-gray-200"
+                              style={{
+                                top: `${popupPosition.top}px`,
+                                left: `${popupPosition.left - 180}px` // Ajuste para que no se salga por la derecha
+                              }}
+                            >
+                              <div className="py-1">
+                                <button
+                                  onClick={() => handleEdit(client)}
+                                  className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                >
+                                  <Edit2 className="h-4 w-4 mr-2" />
+                                  Editar cliente
+                                </button>
+                                
+                                <button
+                                  onClick={() => handleViewProfile(client)}
+                                  className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                >
+                                  <User className="h-4 w-4 mr-2" />
+                                  Ver perfil
+                                </button>
+                                
+                                <button
+                                  onClick={() => handleSendEmail(client)}
+                                  className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                >
+                                  <Mail className="h-4 w-4 mr-2" />
+                                  Enviar email
+                                </button>
+                                
+                                <button
+                                  onClick={() => console.log('Otra acción para', client.id)}
+                                  className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                >
+                                  <CreditCard className="h-4 w-4 mr-2" />
+                                  Ver pagos
+                                </button>
+                                
+                                <button
+                                  onClick={() => handleDelete(client)}
+                                  disabled={isDeleting}
+                                  className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  {isDeleting ? 'Eliminando...' : 'Eliminar cliente'}
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </td>

@@ -29,6 +29,7 @@ const useDeleteAndEditClients = () => {
     onSuccess: () => {
       // Invalidar la consulta de clientes para refrescar los datos
       queryClient.invalidateQueries({ queryKey: ['clientsAll'] });
+      alert("Cliente editado con exito");
     },
     onError: () => {
       alert("Ocurrió un error al editar el cliente. Por favor, contacte al administrador.");
@@ -48,6 +49,7 @@ const useDeleteAndEditClients = () => {
     onSuccess: () => {
       // Invalidar la consulta de clientes para refrescar los datos
       queryClient.invalidateQueries({ queryKey: ['clientsAll'] });
+      alert("Cliente eliminado con exito");
     },
     onError: () => {
       alert("Ocurrió un error al eliminar el cliente. Por favor, contacte al administrador.");
