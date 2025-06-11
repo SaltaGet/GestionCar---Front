@@ -58,10 +58,12 @@ export const FormVehicle = ({ onCancel, client }: FormVehicleProps) => {
     onSuccess: (data) => {
       console.log(data);
       queryClient.invalidateQueries({ queryKey: ["vehicleByClient"] });
-      alert("Vehículo registrado con exito");
       onCancel?.();
-      
+      alert("Vehículo registrado con exito");
       reset();
+      setSearchTermTemp("");
+      setValue("client_id", "");
+      
     },
     onError: () => {
       alert("Error al registrar el vehículo. Intente nuevamente.");
