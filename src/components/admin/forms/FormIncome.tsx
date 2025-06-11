@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
 import { FaPlus } from "react-icons/fa";
 import { FormClient } from "./FormClient";
@@ -11,7 +11,7 @@ import { ServiceSelector } from "./formIncome/ServiceSelector";
 import { useServiceSelection } from "@/hooks/utils/useServiceSelection";
 import { useGetAllService } from "@/hooks/service/useGetAllService";
 import { MovementSearch } from "../search/MovementSearch";
-//import { usePostIncome } from "@/pages/tenant/income/usePostIncome";
+import { usePostIncome } from "@/pages/tenant/income/usePostIncome";
 
 type FormData = {
   amount: number;
@@ -27,16 +27,25 @@ type FormData = {
 
 export const FormIncome = () => {
   const { services } = useGetAllService();
-  const { register, handleSubmit, setValue, watch } = useForm<FormData>();
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    control,
+    formState: { errors },
+  } = useForm<FormData>();
   const [openModal, setOpenModal] = useState<
     "client" | "movement" | "services" | "vehicle" | null
   >(null);
 
-  //const {postIncome, isPostingIncome} = usePostIncome();
+  const { postIncome } = usePostIncome();
 
   // Usar el hook personalizado para manejar la selección de servicios
   const { selectedServices, handleServiceToggle, removeService } =
-    useServiceSelection(watch("services_id") || []);
+    useServiceSelection(watch("services_id") || [], (newServices) =>
+      setValue("services_id", newServices)
+    );
 
   const { vehicles } = useVehicleSearchById(watch("client_id"));
 
@@ -44,10 +53,8 @@ export const FormIncome = () => {
   const [searchTermVehicleTemp, setSearchTermVehicleTemp] = useState("");
 
   const onSubmit = (data: FormData) => {
-    console.log(data);
-    //*postIncome(data);
-
-  }
+    postIncome(data); // Envías el objeto con amount como número
+  };
 
   const client_id = watch("client_id");
 
@@ -73,7 +80,12 @@ export const FormIncome = () => {
             </span>
             <input
               type="number"
-              {...register("amount")}
+              {...register("amount", {
+                valueAsNumber: true,
+                required: "Este campo es requerido", // Mensaje de error cuando está vacío
+                validate: (value) =>
+                  value > 0 || "El monto debe ser mayor que cero", // Validación adicional
+              })}
               className="block w-full border border-blue-200 rounded-md p-3 pl-8 text-xl font-bold text-blue-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="0.00"
               step="any"
@@ -82,6 +94,11 @@ export const FormIncome = () => {
               }
               style={{ WebkitAppearance: "none", MozAppearance: "textfield" }}
             />
+            {errors.amount && (
+              <p className="mt-1 text-sm text-red-600">
+                {errors.amount.message}
+              </p>
+            )}
           </div>
         </div>
 
@@ -89,13 +106,31 @@ export const FormIncome = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Cliente */}
           {!searchTermTemp ? (
-            <ClientSearch
-              value={""}
-              onChange={(id, label) => {
-                setSearchTermTemp(label);
-                setValue("client_id", id);
+            <Controller
+              name="client_id"
+              control={control}
+              rules={{
+                required: "Seleccione un cliente",
               }}
-              onAddClient={() => setOpenModal("client")}
+              render={({
+                field: { onChange, value },
+                fieldState: { error },
+              }) => (
+                <div>
+                  <ClientSearch
+                    value={value || ""}
+                    onChange={(id, label) => {
+                      onChange(id); // Actualiza el valor en react-hook-form
+                      setSearchTermTemp(label);
+                      setValue("client_id", id); // Sincronización adicional si es necesaria
+                    }}
+                    onAddClient={() => setOpenModal("client")}
+                  />
+                  {error && (
+                    <p className="text-red-500 text-sm mt-1">{error.message}</p>
+                  )}
+                </div>
+              )}
             />
           ) : (
             <div className="flex items-center justify-between bg-gray-100 p-2 rounded-md">
@@ -119,30 +154,64 @@ export const FormIncome = () => {
           )}
 
           {/* Tipo de Movimiento */}
-          <MovementSearch
-            value={""}
-            onChange={(id) => {
-              setValue("movement_type_id", id);
+          <Controller
+            name="movement_type_id"
+            control={control}
+            rules={{
+              required: "Seleccione un tipo de movimiento",
             }}
+            render={({ field: { onChange, value }, fieldState: { error } }) => (
+              <div>
+                <MovementSearch
+                  value={value}
+                  onChange={(id) => {
+                    onChange(id);
+                    // Si necesitas hacer algo adicional con el id
+                    setValue("movement_type_id", id);
+                  }}
+                />
+                {error && (
+                  <p className="text-red-500 text-sm mt-1">{error.message}</p>
+                )}
+              </div>
+            )}
           />
         </div>
 
         {/* Sección de Servicios y Vehículo */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Servicios - Usando el nuevo componente */}
-          <ServiceSelector
-            services={services}
-            selectedServices={selectedServices}
-            onServiceToggle={handleServiceToggle}
-            onRemoveService={(serviceId) => {
-              removeService(serviceId);
-              setValue(
-                "services_id",
-                selectedServices.filter((id) => id !== serviceId)
-              );
-            }}
-          />
-
+          <Controller
+  name="services_id"
+  control={control}
+  rules={{
+    validate: (value) => 
+      (value && value.length > 0) || "Seleccione al menos un servicio", // Valida que haya al menos 1 servicio
+  }}
+  render={({ field: { onChange, value }, fieldState: { error } }) => (
+    <div>
+      <ServiceSelector
+        services={services} // Lista de servicios disponibles
+        selectedServices={value || []} // Servicios seleccionados (usa [] si es null/undefined)
+        onServiceToggle={(serviceId) => {
+          const newSelected = value?.includes(serviceId)
+            ? value.filter(id => id !== serviceId) // Si ya está, lo quita
+            : [...(value || []), serviceId]; // Si no está, lo añade
+          onChange(newSelected); // Actualiza react-hook-form
+          setValue("services_id", newSelected); // Sincronización adicional si es necesaria
+        }}
+        onRemoveService={(serviceId) => {
+          const newSelected = value?.filter(id => id !== serviceId) || [];
+          onChange(newSelected);
+          setValue("services_id", newSelected);
+        }}
+      />
+      {error && (
+        <p className="text-red-500 text-sm mt-1">{error.message}</p>
+      )}
+    </div>
+  )}
+/>
           {/* Vehículo */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

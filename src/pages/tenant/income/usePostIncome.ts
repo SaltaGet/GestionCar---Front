@@ -6,7 +6,7 @@ interface IncomeData {
   amount: number;
   client_id: string;
   details: string;
-  employee_id: string;
+  employee_id?: string;
   movement_type_id: string;
   services_id: string[];
   ticket: string;

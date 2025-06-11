@@ -38,6 +38,8 @@ export const ServiceSelector = ({
       .filter((service): service is Service => service !== undefined);
   };
 
+  
+
   const handleServiceSelect = (serviceId: string) => {
     onServiceToggle(serviceId);
     setSearchTerm("");
