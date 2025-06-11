@@ -6,6 +6,7 @@ import { useGetByNameProducts } from "@/hooks/products/useGetByNameProducts";
 import useDeleteAndEditProducts from "@/hooks/products/useDeleteAndEditProducts";
 import { StockModal } from "./StockModal";
 import { useDebounce } from "use-debounce";
+import { useGetByIdentifierProducts } from "@/hooks/products/useGetByIdentifierProducts";
 
 type EditProductForm = {
   identifier: string;
@@ -20,8 +21,7 @@ export const TableProducts = () => {
     reset: resetEditForm,
   } = useForm<EditProductForm>();
 
-  const { editProduct, deleteProduct } =
-    useDeleteAndEditProducts();
+  const { editProduct, deleteProduct } = useDeleteAndEditProducts();
 
   // Estados
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
@@ -30,7 +30,9 @@ export const TableProducts = () => {
   const [showStockModal, setShowStockModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm] = useDebounce(searchTerm, 500); // 500ms de debounce
+  const [searchByIdentifierTerm, setSearchByIdentifierTerm] = useState("");
+  const [debouncedSearchTerm] = useDebounce(searchTerm, 500);
+  const [debouncedSearchByIdentiferTerm] = useDebounce(searchByIdentifierTerm, 500);
   const popupRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Hooks
@@ -38,10 +40,21 @@ export const TableProducts = () => {
   const { products: searchedProducts, isLoading: isLoadingSearch } = useGetByNameProducts(
     debouncedSearchTerm
   );
+  const {
+    products: searchedProductsById,
+    isLoading: isLoadingSearchById,
+  } = useGetByIdentifierProducts(debouncedSearchByIdentiferTerm);
 
   // Determinar qué productos mostrar
-  const productsToShow = debouncedSearchTerm ? searchedProducts : allProducts;
-  const isLoading = isLoadingAll || (debouncedSearchTerm && isLoadingSearch);
+  const productsToShow = 
+    debouncedSearchTerm ? searchedProducts :
+    debouncedSearchByIdentiferTerm ? searchedProductsById :
+    allProducts;
+
+  const isLoading = 
+    isLoadingAll || 
+    (debouncedSearchTerm && isLoadingSearch) || 
+    (debouncedSearchByIdentiferTerm && isLoadingSearchById);
 
   // Cerrar popup al hacer clic fuera
   const handleClickOutside = useCallback(
@@ -62,7 +75,27 @@ export const TableProducts = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [handleClickOutside]);
 
-  // Handlers
+  // Handlers para búsqueda
+  const handleNameSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    if (e.target.value) {
+      setSearchByIdentifierTerm(""); // Limpiar el otro campo si este tiene valor
+    }
+  };
+
+  const handleIdentifierSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchByIdentifierTerm(e.target.value);
+    if (e.target.value) {
+      setSearchTerm(""); // Limpiar el otro campo si este tiene valor
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchTerm("");
+    setSearchByIdentifierTerm("");
+  };
+
+  // Resto de handlers (igual que antes)
   const handleEdit = (product: Product) => {
     setEditingProductId(product.id);
     setActivePopupId(null);
@@ -117,18 +150,49 @@ export const TableProducts = () => {
 
   return (
     <div className="space-y-4">
-      {/* Barra de búsqueda */}
-      <div className="relative max-w-md">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-5 w-5 text-gray-400" />
+      {/* Barras de búsqueda */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Buscar por nombre"
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            value={searchTerm}
+            onChange={handleNameSearchChange}
+          />
+          {(searchTerm || searchByIdentifierTerm) && (
+            <button
+              onClick={clearSearch}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+            >
+              <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+            </button>
+          )}
         </div>
-        <input
-          type="text"
-          placeholder="Buscar pro nombre"
-          className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+        
+        <div className="relative flex-1">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Buscar por identificador (SKU)"
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            value={searchByIdentifierTerm}
+            onChange={handleIdentifierSearchChange}
+          />
+          {(searchTerm || searchByIdentifierTerm) && (
+            <button
+              onClick={clearSearch}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+            >
+              <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Modal para actualizar stock */}
@@ -150,7 +214,9 @@ export const TableProducts = () => {
           <p className="text-blue-700">
             {debouncedSearchTerm
               ? "No se encontraron productos con ese nombre"
-              : "No hay productos registrados"}
+              : debouncedSearchByIdentiferTerm
+                ? "No se encontraron productos con ese identificador"
+                : "No hay productos registrados"}
           </p>
         </div>
       ) : (

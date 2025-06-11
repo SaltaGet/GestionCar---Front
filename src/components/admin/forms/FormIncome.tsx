@@ -25,7 +25,6 @@ type FormData = {
   employee_id?: string;
 };
 
-
 interface ApiResponse {
   // Define aquí la estructura de la respuesta de tu API si es conocida
   // Por ejemplo:
@@ -44,7 +43,7 @@ const postIncome = async (form: FormData): Promise<ApiResponse> => {
       Authorization: `Bearer ${token}`,
     },
   });
-  
+
   return data;
 };
 
@@ -74,9 +73,6 @@ export const FormIncome = () => {
     },
   });
 
-
-
-
   const { vehicles } = useVehicleSearchById(watch("client_id"));
 
   const [searchTermTemp, setSearchTermTemp] = useState("");
@@ -88,13 +84,10 @@ export const FormIncome = () => {
 
   const client_id = watch("client_id");
 
-  useEffect(() => {
-  }, [client_id, setValue]);
+  useEffect(() => {}, [client_id, setValue]);
 
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
-
-
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Sección de Monto - Destacado */}
         <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
@@ -266,7 +259,6 @@ export const FormIncome = () => {
                 </button>
               </div>
             ) : !client_id ? (
-              
               <VehicleSearch
                 value={""}
                 onChange={(idVehicle, labelVehicle, idClient, labelClient) => {
@@ -278,60 +270,63 @@ export const FormIncome = () => {
               />
             ) : (
               <div className="flex gap-2">
-  <Controller
-    name="vehicle_id"
-    control={control}
-    rules={{
-      required: "Seleccione un vehículo",
-      validate: (value) => 
-        (vehicles && vehicles.length > 0 && value !== "") || 
-        "Debe agregar al menos un vehículo"
-    }}
-    render={({ field: { onChange, value }, fieldState: { error } }) => (
-      <>
-        {vehicles && vehicles.length > 0 ? (
-          <div className="flex gap-2 w-full">
-            <select
-              onChange={onChange}
-              value={value || ""}
-              className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="" disabled>
-                Seleccionar vehículo
-              </option>
-              {vehicles.map((vehicle) => (
-                <option key={vehicle.id} value={vehicle.id}>
-                  {vehicle.domain || vehicle.id}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={() => setOpenModal("vehicle")}
-              className="mt-1 bg-indigo-600 text-white p-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-            >
-              <FaPlus className="h-5 w-5" />
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setOpenModal("vehicle")}
-            className="mt-1 bg-indigo-600 text-white p-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-          >
-            <FaPlus className="h-5 w-5" />
-          </button>
-        )}
-        {error && (
-          <p className="text-red-500 text-sm mt-1">{error.message}</p>
-        )}
-      </>
-    )}
-  />
-</div>
-            )
-            
-            }
+                <Controller
+                  name="vehicle_id"
+                  control={control}
+                  rules={{
+                    required: "Seleccione un vehículo",
+                    validate: (value) =>
+                      (vehicles && vehicles.length > 0 && value !== "") ||
+                      "Debe agregar al menos un vehículo",
+                  }}
+                  render={({
+                    field: { onChange, value },
+                    fieldState: { error },
+                  }) => (
+                    <>
+                      {vehicles && vehicles.length > 0 ? (
+                        <div className="flex gap-2 w-full">
+                          <select
+                            onChange={onChange}
+                            value={value || ""}
+                            className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          >
+                            <option value="" disabled>
+                              Seleccionar vehículo
+                            </option>
+                            {vehicles.map((vehicle) => (
+                              <option key={vehicle.id} value={vehicle.id}>
+                                {vehicle.domain || vehicle.id}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => setOpenModal("vehicle")}
+                            className="mt-1 bg-indigo-600 text-white p-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                          >
+                            <FaPlus className="h-5 w-5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setOpenModal("vehicle")}
+                          className="mt-1 bg-indigo-600 text-white p-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        >
+                          <FaPlus className="h-5 w-5" />
+                        </button>
+                      )}
+                      {error && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {error.message}
+                        </p>
+                      )}
+                    </>
+                  )}
+                />
+              </div>
+            )}
           </div>
         </div>
 

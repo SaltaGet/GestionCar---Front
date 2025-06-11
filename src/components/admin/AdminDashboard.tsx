@@ -18,6 +18,7 @@ import {
   SparklesIcon,
   BuildingStorefrontIcon,
   ArrowDownIcon,
+  DocumentTextIcon,
 } from "@heroicons/react/24/outline";
 import { FormIncome } from "./forms/FormIncome";
 import ClientsCreate from "@/pages/tenant/clients/ClientsCreate";
@@ -30,6 +31,11 @@ import { TableVehicles } from "@/pages/tenant/vehicle/TableVehicles";
 import VehiclesCreate from "@/pages/tenant/vehicle/VehiclesCreate";
 import ProductsCreate from "@/pages/tenant/product/ProductsCreate";
 import { TableProducts } from "@/pages/tenant/product/tableProducts/TableProducts";
+import SupplierCreate from "@/pages/tenant/supplier/SupplierCreate";
+import { TableSuppliers } from "@/pages/tenant/supplier/TableSuppliers";
+import PurchaseOrderCreate from "@/pages/tenant/purchaseOrder/PurchaseOrderCreate";
+import { TablePurchaseOrders } from "@/pages/tenant/purchaseOrder/TablePurchaseOrders";
+import ExpenseCreate from "@/pages/expense/ExpenseCreate";
 
 type Action = {
   id: string;
@@ -54,7 +60,6 @@ type Section = {
 };
 
 // Componentes para cada acción
-const CrearIngreso = () => <h1>Formulario para crear nuevo ingreso</h1>;
 const ListarVehiculos = () => <h1>Tabla con todos los vehículos</h1>;
 const ListarClientes = () => <h1>Tabla con todos los clientes</h1>;
 
@@ -85,10 +90,10 @@ const AdminDashboard = () => {
           color: "text-red-500",
           actions: [
             {
-              id: "action-crear-egreso",
+              id: "action-create-expenses",
               name: "Crear",
               icon: PlusIcon,
-              component: CrearIngreso,
+              component: ExpenseCreate,
             },
           ],
         },
@@ -125,6 +130,26 @@ const AdminDashboard = () => {
       name: "Inventario",
       models: [
         {
+          id: "model-purchaseOrders",
+          name: "Ordenes de Compra",
+          icon: DocumentTextIcon,
+          color: "text-cyan-500",
+          actions: [
+            {
+              id: "action-purchaseOrders-create",
+              name: "Crear",
+              icon: PlusIcon,
+              component: PurchaseOrderCreate,
+            },
+            {
+              id: "action-list-purchaseOrders",
+              name: "Listar",
+              icon: ListBulletIcon,
+              component: TablePurchaseOrders,
+            },
+          ],
+        },
+        {
           id: "model-products",
           name: "Productos",
           icon: CubeIcon,
@@ -151,10 +176,16 @@ const AdminDashboard = () => {
           color: "text-rose-500",
           actions: [
             {
-              id: "action-listar-proveedores",
+              id: "action-create-suppliers",
+              name: "Crear",
+              icon: PlusIcon,
+              component: SupplierCreate,
+            },
+            {
+              id: "action-list-suppliers",
               name: "Listar",
               icon: ListBulletIcon,
-              component: ListarClientes,
+              component: TableSuppliers,
             },
           ],
         },

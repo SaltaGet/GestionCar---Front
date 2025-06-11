@@ -7,14 +7,21 @@ interface MovementSearchProps {
   value: string;
   onChange: (id: string, name: string) => void;
   disabled?: boolean;
+  isIncome?: boolean; // Nueva prop opcional
 }
 
-export const MovementSearch = ({ value, onChange, disabled }: MovementSearchProps) => {
+export const MovementSearch = ({ 
+  value, 
+  onChange, 
+  disabled, 
+  isIncome = true // Valor por defecto true (para ingresos)
+}: MovementSearchProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedMovement, setSelectedMovement] = useState<{id: string, name: string} | null>(null);
   
-  const { movements, isLoading } = useGetAllMovements(true);
+  // Usamos la prop isIncome para determinar qué movimientos cargar
+  const { movements, isLoading } = useGetAllMovements(isIncome);
 
   const filteredMovements = movements.filter(movement =>
     movement.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -48,7 +55,7 @@ export const MovementSearch = ({ value, onChange, disabled }: MovementSearchProp
   return (
     <div className="relative w-full">
       <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
-        Seleccionar Movimiento
+        {isIncome ? 'Tipo de Ingreso' : 'Tipo de Gasto'} {/* Etiqueta dinámica */}
       </label>
       
       {selectedMovement ? (
@@ -74,7 +81,7 @@ export const MovementSearch = ({ value, onChange, disabled }: MovementSearchProp
             }}
             onFocus={() => setIsDropdownOpen(true)}
             onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
-            placeholder="Buscar movimiento..."
+            placeholder={isIncome ? "Buscar tipo de ingreso..." : "Buscar tipo de gasto..."}
             disabled={disabled}
             className="w-full text-sm px-3 py-2 border border-gray-200 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
           />
