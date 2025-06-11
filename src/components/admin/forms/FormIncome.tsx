@@ -8,10 +8,11 @@ import { useVehicleSearchById } from "@/hooks/vehicle/useVehicleSearchById";
 import { VehicleSearch } from "../search/VehicleSearch";
 import Modal from "./formIncome/Modal";
 import { ServiceSelector } from "./formIncome/ServiceSelector";
-import { useServiceSelection } from "@/hooks/utils/useServiceSelection";
 import { useGetAllService } from "@/hooks/service/useGetAllService";
 import { MovementSearch } from "../search/MovementSearch";
-import { usePostIncome } from "@/pages/tenant/income/usePostIncome";
+import { useMutation } from "@tanstack/react-query";
+import apiGestionCar from "@/api/gestionCarApi";
+import useAuthStore from "@/store/authStore";
 
 type FormData = {
   amount: number;
@@ -21,9 +22,31 @@ type FormData = {
   services_id: string[];
   ticket: string;
   vehicle_id: string;
+  employee_id?: string;
 };
 
+
+interface ApiResponse {
+  // Define aquí la estructura de la respuesta de tu API si es conocida
+  // Por ejemplo:
+  status: boolean;
+  message: string;
+  body: string;
+}
+
 // Lista ficticia de servicios (solo con id y nombre)
+
+const postIncome = async (form: FormData): Promise<ApiResponse> => {
+  const token = useAuthStore.getState().token;
+  const { data } = await apiGestionCar.post("/income/create", form, {
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  
+  return data;
+};
 
 export const FormIncome = () => {
   const { services } = useGetAllService();
@@ -33,19 +56,26 @@ export const FormIncome = () => {
     setValue,
     watch,
     control,
+    reset,
     formState: { errors },
   } = useForm<FormData>();
   const [openModal, setOpenModal] = useState<
     "client" | "movement" | "services" | "vehicle" | null
   >(null);
 
-  const { postIncome } = usePostIncome();
+  const { mutate } = useMutation<ApiResponse, Error, FormData>({
+    mutationFn: postIncome,
+    onSuccess: () => {
+      alert("Ingreso creado con éxito");
+      reset();
+    },
+    onError: () => {
+      alert("Ocurrió un error al crear el ingreso");
+    },
+  });
 
-  // Usar el hook personalizado para manejar la selección de servicios
-  const { selectedServices, handleServiceToggle, removeService } =
-    useServiceSelection(watch("services_id") || [], (newServices) =>
-      setValue("services_id", newServices)
-    );
+
+
 
   const { vehicles } = useVehicleSearchById(watch("client_id"));
 
@@ -53,20 +83,17 @@ export const FormIncome = () => {
   const [searchTermVehicleTemp, setSearchTermVehicleTemp] = useState("");
 
   const onSubmit = (data: FormData) => {
-    postIncome(data); // Envías el objeto con amount como número
+    mutate(data); // Envías el objeto con amount como número
   };
 
   const client_id = watch("client_id");
 
   useEffect(() => {
-    setValue("vehicle_id", "");
   }, [client_id, setValue]);
 
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">
-        Registro de Ingreso
-      </h1>
+
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Sección de Monto - Destacado */}
@@ -182,36 +209,38 @@ export const FormIncome = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Servicios - Usando el nuevo componente */}
           <Controller
-  name="services_id"
-  control={control}
-  rules={{
-    validate: (value) => 
-      (value && value.length > 0) || "Seleccione al menos un servicio", // Valida que haya al menos 1 servicio
-  }}
-  render={({ field: { onChange, value }, fieldState: { error } }) => (
-    <div>
-      <ServiceSelector
-        services={services} // Lista de servicios disponibles
-        selectedServices={value || []} // Servicios seleccionados (usa [] si es null/undefined)
-        onServiceToggle={(serviceId) => {
-          const newSelected = value?.includes(serviceId)
-            ? value.filter(id => id !== serviceId) // Si ya está, lo quita
-            : [...(value || []), serviceId]; // Si no está, lo añade
-          onChange(newSelected); // Actualiza react-hook-form
-          setValue("services_id", newSelected); // Sincronización adicional si es necesaria
-        }}
-        onRemoveService={(serviceId) => {
-          const newSelected = value?.filter(id => id !== serviceId) || [];
-          onChange(newSelected);
-          setValue("services_id", newSelected);
-        }}
-      />
-      {error && (
-        <p className="text-red-500 text-sm mt-1">{error.message}</p>
-      )}
-    </div>
-  )}
-/>
+            name="services_id"
+            control={control}
+            rules={{
+              validate: (value) =>
+                (value && value.length > 0) ||
+                "Seleccione al menos un servicio", // Valida que haya al menos 1 servicio
+            }}
+            render={({ field: { onChange, value }, fieldState: { error } }) => (
+              <div>
+                <ServiceSelector
+                  services={services} // Lista de servicios disponibles
+                  selectedServices={value || []} // Servicios seleccionados (usa [] si es null/undefined)
+                  onServiceToggle={(serviceId) => {
+                    const newSelected = value?.includes(serviceId)
+                      ? value.filter((id) => id !== serviceId) // Si ya está, lo quita
+                      : [...(value || []), serviceId]; // Si no está, lo añade
+                    onChange(newSelected); // Actualiza react-hook-form
+                    setValue("services_id", newSelected); // Sincronización adicional si es necesaria
+                  }}
+                  onRemoveService={(serviceId) => {
+                    const newSelected =
+                      value?.filter((id) => id !== serviceId) || [];
+                    onChange(newSelected);
+                    setValue("services_id", newSelected);
+                  }}
+                />
+                {error && (
+                  <p className="text-red-500 text-sm mt-1">{error.message}</p>
+                )}
+              </div>
+            )}
+          />
           {/* Vehículo */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -237,6 +266,7 @@ export const FormIncome = () => {
                 </button>
               </div>
             ) : !client_id ? (
+              
               <VehicleSearch
                 value={""}
                 onChange={(idVehicle, labelVehicle, idClient, labelClient) => {
@@ -248,41 +278,60 @@ export const FormIncome = () => {
               />
             ) : (
               <div className="flex gap-2">
-                {vehicles && vehicles.length > 0 ? (
-                  <>
-                    <select
-                      {...register("vehicle_id")}
-                      className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      defaultValue=""
-                    >
-                      <option value="" disabled>
-                        Seleccionar vehículo
-                      </option>
-                      {vehicles.map((vehicle) => (
-                        <option key={vehicle.id} value={vehicle.id}>
-                          {vehicle.domain || vehicle.id}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => setOpenModal("vehicle")}
-                      className="mt-1 bg-indigo-600 text-white p-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                    >
-                      <FaPlus className="h-5 w-5" />
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setOpenModal("vehicle")}
-                    className="mt-1 bg-indigo-600 text-white p-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                  >
-                    <FaPlus className="h-5 w-5" />
-                  </button>
-                )}
-              </div>
-            )}
+  <Controller
+    name="vehicle_id"
+    control={control}
+    rules={{
+      required: "Seleccione un vehículo",
+      validate: (value) => 
+        (vehicles && vehicles.length > 0 && value !== "") || 
+        "Debe agregar al menos un vehículo"
+    }}
+    render={({ field: { onChange, value }, fieldState: { error } }) => (
+      <>
+        {vehicles && vehicles.length > 0 ? (
+          <div className="flex gap-2 w-full">
+            <select
+              onChange={onChange}
+              value={value || ""}
+              className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="" disabled>
+                Seleccionar vehículo
+              </option>
+              {vehicles.map((vehicle) => (
+                <option key={vehicle.id} value={vehicle.id}>
+                  {vehicle.domain || vehicle.id}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setOpenModal("vehicle")}
+              className="mt-1 bg-indigo-600 text-white p-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            >
+              <FaPlus className="h-5 w-5" />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setOpenModal("vehicle")}
+            className="mt-1 bg-indigo-600 text-white p-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          >
+            <FaPlus className="h-5 w-5" />
+          </button>
+        )}
+        {error && (
+          <p className="text-red-500 text-sm mt-1">{error.message}</p>
+        )}
+      </>
+    )}
+  />
+</div>
+            )
+            
+            }
           </div>
         </div>
 
