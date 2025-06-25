@@ -1,5 +1,3 @@
-import Footer from "@/components/HeaderFooter/Footer";
-import Header from "@/components/HeaderFooter/Header";
 import Dashboard from "@/pages/Dashboard";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
@@ -8,9 +6,9 @@ import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 
 const Layout = () => (
   <>
-    <Header />
+    {/* <Header /> */}
     <Outlet />
-    <Footer />
+    {/* <Footer /> */}
   </>
 );
 const routers = createBrowserRouter([
